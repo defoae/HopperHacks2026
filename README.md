@@ -1,2 +1,2 @@
 # HopperHacks2026
-Repo for HopperHack 2026 Project 
+Repo for HopperHacks 2026 Project 
