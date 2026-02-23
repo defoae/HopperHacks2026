@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Inclusion Analyzer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #555; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    #status { margin-top: 1rem; color: #64748b; font-size: 0.9rem; }
+    #results { margin-top: 1.5rem; }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 0.5rem 0; color: #334155; }
+    .score-big { font-size: 2rem; font-weight: 700; color: #2563eb; }
+    ul { margin: 0; padding-left: 1.25rem; }
+    li { margin-bottom: 0.25rem; }
+    .interruption { color: #b91c1c; }
+    .error { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <h1>Meeting Inclusion Analyzer</h1>
+  <p class="subtitle">Upload a meeting recording to see speaking time, interruptions, and an inclusion score.</p>
+
+  <div class="card">
+    <label for="audio">Audio file (WAV, MP3, M4A)</label>
+    <input type="file" id="audio" accept=".wav,.mp3,.m4a" />
+    <button type="button" id="analyze">Analyze Meeting</button>
+    <p id="status"></p>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const audioInput = document.getElementById('audio');
+    const analyzeBtn = document.getElementById('analyze');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    analyzeBtn.addEventListener('click', async () => {
+      const file = audioInput.files[0];
+      if (!file) {
+        statusEl.textContent = 'Please select an audio file.';
+        statusEl.className = 'error';
+        return;
+      }
+
+      statusEl.textContent = 'Uploading and analyzing… (this may take a minute)';
+      statusEl.className = '';
+      analyzeBtn.disabled = true;
+      resultsEl.innerHTML = '';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const detail = Array.isArray(data.detail) ? data.detail[0]?.msg || data.detail : data.detail;
+          statusEl.textContent = detail || res.statusText || 'Request failed';
+          statusEl.className = 'error';
+          return;
+        }
+
+        statusEl.textContent = 'Done.';
+        statusEl.className = '';
+
+        let html = '';
+
+        html += '<div class="card"><h2>Inclusion score</h2><p class="score-big">' + data.inclusion_score + '</p><p>Dominant speaker: ' + (data.dominant_speaker || '—') + '</p></div>';
+
+        html += '<div class="card"><h2>Speaking time</h2><ul>';
+        for (const [speaker, sec] of Object.entries(data.speaking_time || {})) {
+          html += '<li>' + speaker + ': ' + sec + ' s</li>';
+        }
+        html += '</ul></div>';
+
+        if (data.interruptions && data.interruptions.length > 0) {
+          html += '<div class="card"><h2>Interruptions</h2><ul>';
+          data.interruptions.forEach(function (x) {
+            html += '<li class="interruption">' + x.interrupter + ' → ' + x.target + ': ' + x.count + '</li>';
+          });
+          html += '</ul></div>';
+        } else {
+          html += '<div class="card"><h2>Interruptions</h2><p>None detected.</p></div>';
+        }
+
+        if (data.segments && data.segments.length > 0) {
+          html += '<div class="card"><h2>Transcript (by speaker)</h2><ul>';
+          data.segments.forEach(function (s) {
+            const t = s.text ? s.text : '(no text)';
+            html += '<li><strong>' + s.speaker + '</strong> [' + s.start_time + '–' + s.end_time + 's]: ' + t + '</li>';
+          });
+          html += '</ul></div>';
+        }
+
+        resultsEl.innerHTML = html;
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + (err.message || 'Network or server error');
+        statusEl.className = 'error';
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

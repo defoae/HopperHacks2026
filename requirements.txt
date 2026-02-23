@@ -1,0 +1,27 @@
+# Meeting Inclusion Analyzer - Hackathon stack
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.17
+
+# Speech-to-text (local)
+openai-whisper
+
+# Speaker diarization (stable version)
+pyannote.audio==3.3.2
+pyannote.core<6.0.0
+
+# PyTorch (CPU)
+torch==2.2.0
+torchaudio>=2.2.0
+numpy<2.0
+pydub==0.25.1
+librosa  # For audio loading in diarization
+
+# HTTP requests (for testing token validity)
+requests
+
+# Optional: load environment variables from .env
+python-dotenv==1.0.0
+
+# Hugging Face (latest, works with HF_TOKEN env var)
+huggingface-hub>=1.0.0
