@@ -34,7 +34,7 @@ Then open **http://localhost:8000** in your browser, upload an audio file (WAV, 
 
 ---
 
-## Where to put `HUGGINGFACE_TOKEN`
+## Use of `HUGGINGFACE_TOKEN`
 
 1. **Get a token:** [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)  
 2. **Accept model terms:** Visit [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) and accept the conditions.  
